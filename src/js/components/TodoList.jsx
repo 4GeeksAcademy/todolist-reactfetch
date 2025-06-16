@@ -1,4 +1,3 @@
-// src/js/components/TodoList.jsx
 import React from 'react';
 import TodoItem from './TodoItem';
 

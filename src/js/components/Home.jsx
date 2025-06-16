@@ -3,94 +3,100 @@ import React, { useState, useEffect } from 'react';
 import TodoInput from './TodoInput';
 import TodoList from './TodoList';
 
-const USER    = 'alesanchezr';
-const API_URL = `https://playground.4geeks.com/todos/${USER}`;
+const USER             = 'CarlosAguayo1';
+const URL_USER         = `https://playground.4geeks.com/todo/users/${USER}`;
+const URL_TODOS_BY_USER= `https://playground.4geeks.com/todo/todos/${USER}`;
+const URL_TODO         = `https://playground.4geeks.com/todo/todos`;
 
 export default function Home() {
   const [todos,   setTodos]   = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Inicializa el usuario (POST []) o carga lista si ya existe
-  useEffect(() => {
-    const init = async () => {
-      try {
-        // Intentamos un GET rápido para ver si existe
-        const resp = await fetch(API_URL);
-        if (!resp.ok) {
-          // Si no existe (404 o 405), lo creamos
-          await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify([])
-          });
-          setTodos([]);
-          return;
-        }
-        // Si existe, cargamos la lista
-        const data = await resp.json();
-        setTodos(data);
-      } catch (err) {
-        console.error('Error init:', err);
-        setTodos([]); // incluso si da error, arrancamos con vacío
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
-
-  // Añade una tarea y usa el array que devuelva el POST
-  const addTodo = async texto => {
-    setLoading(true);
+  
+  const initAndFetch = async () => {
     try {
-      const resp = await fetch(API_URL, {
+      setLoading(true);
+
+      
+      const resUser = await fetch(URL_USER);
+      if (!resUser.ok) {
+        
+        await fetch(URL_TODOS_BY_USER, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([])
+        });
+        setTodos([]);
+        return;
+      }
+
+      
+      const { todos: lista } = await resUser.json();
+      setTodos(lista);
+    } catch (err) {
+      console.error('Error iniciando o cargando tareas:', err);
+      setTodos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+  const addTodo = async texto => {
+    try {
+      setLoading(true);
+      await fetch(URL_TODOS_BY_USER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label: texto, done: false })
       });
-      if (!resp.ok) throw new Error(resp.status);
-      const data = await resp.json();
-      setTodos(data);
+      
+      await initAndFetch();
     } catch (err) {
-      console.error('Error al añadir:', err);
+      console.error('Error añadiendo tarea:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Borra una tarea y usa el array que devuelva el DELETE
+ 
   const deleteTodo = async id => {
-    setLoading(true);
     try {
-      const resp = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-      if (!resp.ok) throw new Error(resp.status);
-      const data = await resp.json();
-      setTodos(data);
+      setLoading(true);
+      await fetch(`${URL_TODO}/${id}`, { method: 'DELETE' });
+      
+      await initAndFetch();
     } catch (err) {
-      console.error('Error al borrar:', err);
+      console.error('Error borrando tarea:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Borra todas las tareas de golpe
+  
   const clearTodos = async () => {
-    setLoading(true);
     try {
-      const resp = await fetch(API_URL, { method: 'DELETE' });
-      if (!resp.ok) throw new Error(resp.status);
-      const data = await resp.json();
-      setTodos(data);
+      setLoading(true);
+      
+      await Promise.all(
+        todos.map(t => fetch(`${URL_TODO}/${t.id}`, { method: 'DELETE' }))
+      );
+      setTodos([]);
     } catch (err) {
-      console.error('Error al vaciar lista:', err);
+      console.error('Error borrando todas las tareas:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  
+  useEffect(() => {
+    initAndFetch();
+  }, []);
 
   return (
     <div className="todo-app">
-      <h1>tareas</h1>
+      <h1>Tareas</h1>
       <TodoInput onAdd={addTodo} />
 
       {loading
@@ -99,7 +105,10 @@ export default function Home() {
           <>
             <TodoList todos={todos} onDelete={deleteTodo} />
             {todos.length > 0 && (
-              <button className="clear-all-btn" onClick={clearTodos}>
+              <button 
+                className="clear-all-btn" 
+                onClick={clearTodos}
+              >
                 Eliminar todas las tareas
               </button>
             )}

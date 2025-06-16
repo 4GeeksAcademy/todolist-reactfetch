@@ -1,4 +1,3 @@
-// src/js/components/TodoInput.jsx
 import React, { useState } from 'react';
 
 export default function TodoInput({ onAdd }) {
@@ -22,3 +21,4 @@ export default function TodoInput({ onAdd }) {
     />
   );
 }
+
